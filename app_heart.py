@@ -1,87 +1,58 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import numpy as np
 
-# -------------------------------
-# 1️⃣ Load model and encoders
-# -------------------------------
-model = joblib.load('model_heart.pkl')
-ct = joblib.load('encoder.pkl')
-le_sex = joblib.load('le_sex.pkl')
-le_exercise_angina = joblib.load('le_exercise_angina.pkl')
+# Load your trained model
+model = joblib.load("model_heart.pkl")
 
-# -------------------------------
-# 2️⃣ Streamlit App Title
-# -------------------------------
+# App title
 st.title("❤️ Heart Disease Prediction App")
+
 st.write("""
-This app predicts the **likelihood of heart disease** based on user inputs.  
-Fill in the fields below and click **Predict**.
+This app predicts the likelihood of **heart disease** based on your inputs.  
+Please fill in the details below 👇
 """)
 
-# -------------------------------
-# 3️⃣ User Inputs
-# -------------------------------
-age = st.slider('Age', 18, 100, 50)
-sex = st.selectbox('Sex', ['M', 'F'])
-chest_pain_type = st.selectbox('Chest Pain Type', ['ATA', 'NAP', 'ASY', 'TA'])
-resting_bp = st.number_input('Resting Blood Pressure (mm Hg)', 50, 200, 120)
-cholesterol = st.number_input('Cholesterol (mg/dL)', 0, 600, 200)
-fasting_bs = st.selectbox('Fasting Blood Sugar > 120 mg/dL', [0, 1])
-resting_ecg = st.selectbox('Resting ECG', ['Normal', 'ST', 'LVH'])
-max_hr = st.number_input('Max Heart Rate Achieved', 60, 220, 150)
-exercise_angina = st.selectbox('Exercise Angina', ['N', 'Y'])
-oldpeak = st.number_input('Oldpeak', 0.0, 6.2, 1.0)
-st_slope = st.selectbox('ST Slope', ['Up', 'Flat', 'Down'])
+# Input fields
+age = st.slider("Age", 18, 100, 50)
+sex = st.selectbox("Sex", ["M", "F"])
+chest_pain_type = st.selectbox("Chest Pain Type", ["ATA", "NAP", "ASY", "TA"])
+resting_bp = st.number_input("Resting Blood Pressure (mm Hg)", 50, 200, 120)
+cholesterol = st.number_input("Cholesterol (mg/dL)", 0, 600, 200)
+fasting_bs = st.selectbox("Fasting Blood Sugar > 120 mg/dL", [0, 1])
+resting_ecg = st.selectbox("Resting ECG", ["Normal", "ST", "LVH"])
+max_hr = st.number_input("Max Heart Rate", 60, 220, 150)
+exercise_angina = st.selectbox("Exercise Induced Angina", ["N", "Y"])
+oldpeak = st.number_input("Oldpeak (ST depression)", 0.0, 6.2, 1.0)
+st_slope = st.selectbox("ST Slope", ["Up", "Flat", "Down"])
 
-# -------------------------------
-# 4️⃣ Create DataFrame (each value wrapped in list)
-# -------------------------------
-input_df = pd.DataFrame({
-    'Age': [age],
-    'Sex': [sex],
-    'ChestPainType': [chest_pain_type],
-    'RestingBP': [resting_bp],
-    'Cholesterol': [cholesterol],
-    'FastingBS': [fasting_bs],
-    'RestingECG': [resting_ecg],
-    'MaxHR': [max_hr],
-    'ExerciseAngina': [exercise_angina],
-    'Oldpeak': [oldpeak],
-    'ST_Slope': [st_slope]
+# Create dataframe
+input_data = pd.DataFrame({
+    "Age": [age],
+    "Sex": [1 if sex == "M" else 0],
+    "ChestPainType_ATA": [1 if chest_pain_type == "ATA" else 0],
+    "ChestPainType_NAP": [1 if chest_pain_type == "NAP" else 0],
+    "ChestPainType_ASY": [1 if chest_pain_type == "ASY" else 0],
+    "RestingBP": [resting_bp],
+    "Cholesterol": [cholesterol],
+    "FastingBS": [fasting_bs],
+    "RestingECG_Normal": [1 if resting_ecg == "Normal" else 0],
+    "RestingECG_ST": [1 if resting_ecg == "ST" else 0],
+    "MaxHR": [max_hr],
+    "ExerciseAngina": [1 if exercise_angina == "Y" else 0],
+    "Oldpeak": [oldpeak],
+    "ST_Slope_Up": [1 if st_slope == "Up" else 0],
+    "ST_Slope_Flat": [1 if st_slope == "Flat" else 0],
 })
 
-# -------------------------------
-# 5️⃣ Apply Encoders (same as training)
-# -------------------------------
-try:
-    input_df['Sex'] = le_sex.transform(input_df['Sex'])
-    input_df['ExerciseAngina'] = le_exercise_angina.transform(input_df['ExerciseAngina'])
-except Exception as e:
-    st.error(f"Encoder Error: {e}")
-    st.stop()
-
-# -------------------------------
-# 6️⃣ One-Hot Encode using fitted ColumnTransformer
-# -------------------------------
-try:
-    input_encoded = ct.transform(input_df)
-except Exception as e:
-    st.error(f"Encoding Error: {e}")
-    st.stop()
-
-# -------------------------------
-# 7️⃣ Predict
-# -------------------------------
+# Predict button
 if st.button("🔍 Predict"):
-    try:
-        prediction = model.predict(input_encoded)[0]
-        probability = model.predict_proba(input_encoded)[0][1]
+    prediction = model.predict(input_data)[0]
+    prob = model.predict_proba(input_data)[0][1]
 
-        if prediction == 1:
-            st.error(f"🚨 High Risk of Heart Disease (Confidence: {probability:.2f})")
-        else:
-            st.success(f"✅ Low Risk of Heart Disease (Confidence: {probability:.2f})")
-    except Exception as e:
-        st.error(f"Prediction Error: {e}")
+    if prediction == 1:
+        st.error(f"⚠️ High risk of heart disease! (Confidence: {prob:.2f})")
+    else:
+        st.success(f"✅ Low risk of heart disease (Confidence: {prob:.2f})")
+
+st.caption("Developed with ❤️ using Streamlit and XGBoost")
